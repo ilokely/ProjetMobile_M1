@@ -45,9 +45,11 @@ class AnnonceViewModel(application: Application) : AndroidViewModel(application)
     val profilTelephone: StateFlow<String> = _profilTelephone
 
     init {
-        // Premier lancement : la base est vide -> on insère le jeu de démo.
+        // Premier lancement : la base est vide -> on insère le jeu de démo (une seule fois).
         viewModelScope.launch {
-            annoncesInitiales.forEach { dao.inserer(it) }
+            if (dao.compterAnnonces() == 0) {
+                annoncesInitiales.forEach { dao.inserer(it) }
+            }
         }
     }
 
@@ -68,12 +70,12 @@ class AnnonceViewModel(application: Application) : AndroidViewModel(application)
             val village = flux[3] as String?
             val modeCourant = flux[4] as ModeTri
 
-            // Choix de la liste de base selon le mode (expression when, mini-TP 1).
+            // Choix de la liste de base
             val base = when (modeCourant) {
                 ModeTri.RECENTES -> parDate
                 ModeTri.PRIX_CROISSANT -> parPrix
             }
-            // Filtre par village en mémoire (opération de collection : filter).
+            // Filtre par village
             val liste = village?.let { v -> base.filter { it.village == v } } ?: base
 
             EtatUi(annonces = liste, villages = villages, villageFiltre = village, mode = modeCourant)
@@ -99,7 +101,7 @@ class AnnonceViewModel(application: Application) : AndroidViewModel(application)
         mode.value = nouveau
     }
 
-    /** Publier une nouvelle annonce (utilisée par l'écran "Publier"). */
+    /** Publier une nouvelle annonce */
     fun publier(
         nomProduit: String,
         village: String,

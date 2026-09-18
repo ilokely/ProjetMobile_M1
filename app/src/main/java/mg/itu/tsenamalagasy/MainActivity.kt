@@ -129,17 +129,17 @@ fun AppNavigation() {
             )
         }
 
-        composable("profil") {
-            EcranProfil(
-                viewModel = viewModel,
-                navController = navController,
-            )
-        }
-
         composable("publier") {
             EcranPublier(
                 viewModel = viewModel,
                 onTermine = { navController.popBackStack() },
+            )
+        }
+
+        composable("profil") {
+            EcranProfil(
+                viewModel = viewModel,
+                navController = navController,
             )
         }
     }
@@ -781,7 +781,7 @@ fun EcranDetail(
             Spacer(Modifier.height(24.dp))
             Button(
                 onClick = {
-                    // Intent implicite : appeler le producteur (patron du mini-TP 3)
+                    // Intent implicite : appeler le producteur
                     val intent = Intent(Intent.ACTION_DIAL, "tel:${a.telephone}".toUri())
                     context.startActivity(intent)
                 },

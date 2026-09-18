@@ -34,12 +34,12 @@ data class Annonce(
     val nomProduit: String,
     val village: String,
     val quantiteKg: Double,
-    val prixKg: Double?,           // null = "à négocier"
+    val prixKg: Double?,           // null = "a negocier"
     val nomProducteur: String,
     val telephone: String,
     val dateISO: String,           // "2026-09-17"
     val vendue: Boolean = false,
-    val estMienne: Boolean = false, // true = publiée depuis cet appareil (écran "Mes publications")
+    val estMienne: Boolean = false, // true = publiée depuis cet appareil
 )
 
 // ----------------------------------------------------------------------------
@@ -49,29 +49,33 @@ data class Annonce(
 @Dao
 interface AnnonceDao {
 
-    /** Toutes les annonces actives, les plus récentes d'abord. */
+    /** Annonces actives */
     @Query("SELECT * FROM annonces WHERE vendue = 0 ORDER BY dateISO DESC, id DESC")
     fun annoncesActives(): Flow<List<Annonce>>
 
-    /** Filtrées par village (recherche locale, cas d'usage principal de l'app). */
+    /** Filtres par village */
     @Query("SELECT * FROM annonces WHERE vendue = 0 AND village = :village ORDER BY dateISO DESC")
     fun parVillage(village: String): Flow<List<Annonce>>
 
-    /** Triées par prix croissant ; les annonces sans prix (NULL) en dernier. */
+    /** Tri par prix croissant */
     @Query("SELECT * FROM annonces WHERE vendue = 0 ORDER BY prixKg IS NULL, prixKg ASC")
     fun parPrixCroissant(): Flow<List<Annonce>>
 
-    /** Une annonce précise (écran de détail). */
+    /** Une annonce precise  */
     @Query("SELECT * FROM annonces WHERE id = :id")
     suspend fun parId(id: Int): Annonce?
 
-    /** Liste des villages distincts, pour construire les filtres. */
+    /** Liste des villages distincts */
     @Query("SELECT DISTINCT village FROM annonces ORDER BY village ASC")
     fun villages(): Flow<List<String>>
 
-    /** Mes propres annonces (publiées depuis cet appareil), vendues incluses. */
+    /** Mes propres annonces */
     @Query("SELECT * FROM annonces WHERE estMienne = 1 ORDER BY dateISO DESC, id DESC")
     fun mesAnnonces(): Flow<List<Annonce>>
+
+    /** Nombre total d'annonces, pour ne peupler le jeu de démo qu'au tout premier lancement. */
+    @Query("SELECT COUNT(*) FROM annonces")
+    suspend fun compterAnnonces(): Int
 
     @Insert
     suspend fun inserer(annonce: Annonce): Long
