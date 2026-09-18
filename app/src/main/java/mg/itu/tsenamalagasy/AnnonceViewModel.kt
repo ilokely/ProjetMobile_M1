@@ -1,6 +1,7 @@
 package mg.itu.tsenamalagasy
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,12 @@ class AnnonceViewModel(application: Application) : AndroidViewModel(application)
     private val dao = AppDatabase.obtenir(application).annonceDao()
     private val villageFiltre = MutableStateFlow<String?>(null)
     private val mode = MutableStateFlow(ModeTri.RECENTES)
+
+    private val prefsProfil = application.getSharedPreferences("profil", Context.MODE_PRIVATE)
+    private val _profilNom = MutableStateFlow(prefsProfil.getString("nom", "") ?: "")
+    private val _profilTelephone = MutableStateFlow(prefsProfil.getString("telephone", "") ?: "")
+    val profilNom: StateFlow<String> = _profilNom
+    val profilTelephone: StateFlow<String> = _profilTelephone
 
     init {
         // Premier lancement : la base est vide -> on insère le jeu de démo.
@@ -76,6 +83,14 @@ class AnnonceViewModel(application: Application) : AndroidViewModel(application)
             initialValue = EtatUi(),
         )
 
+    /** Mes propres annonces (écran "Mes publications"), recalculée à chaque écriture. */
+    val mesAnnonces: StateFlow<List<Annonce>> =
+        dao.mesAnnonces().stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
+
     fun changerVillage(village: String?) {
         villageFiltre.value = village
     }
@@ -104,6 +119,7 @@ class AnnonceViewModel(application: Application) : AndroidViewModel(application)
                     nomProducteur = nomProducteur,
                     telephone = telephone,
                     dateISO = dateISO,
+                    estMienne = true,
                 )
             )
         }
@@ -115,5 +131,19 @@ class AnnonceViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             dao.modifier(annonce.copy(vendue = true))
         }
+    }
+
+    /** Ajuste le stock disponible d'une de mes annonces (écran "Mes publications"). */
+    fun modifierStock(annonce: Annonce, nouvelleQuantite: Double) {
+        viewModelScope.launch {
+            dao.modifier(annonce.copy(quantiteKg = nouvelleQuantite.coerceAtLeast(0.0)))
+        }
+    }
+
+    /** Enregistre le nom/téléphone du producteur, réutilisés pour pré-remplir l'écran Publier. */
+    fun enregistrerProfil(nom: String, telephone: String) {
+        prefsProfil.edit().putString("nom", nom).putString("telephone", telephone).apply()
+        _profilNom.value = nom
+        _profilTelephone.value = telephone
     }
 }

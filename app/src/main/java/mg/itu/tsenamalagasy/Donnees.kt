@@ -39,6 +39,7 @@ data class Annonce(
     val telephone: String,
     val dateISO: String,           // "2026-09-17"
     val vendue: Boolean = false,
+    val estMienne: Boolean = false, // true = publiée depuis cet appareil (écran "Mes publications")
 )
 
 // ----------------------------------------------------------------------------
@@ -68,6 +69,10 @@ interface AnnonceDao {
     @Query("SELECT DISTINCT village FROM annonces ORDER BY village ASC")
     fun villages(): Flow<List<String>>
 
+    /** Mes propres annonces (publiées depuis cet appareil), vendues incluses. */
+    @Query("SELECT * FROM annonces WHERE estMienne = 1 ORDER BY dateISO DESC, id DESC")
+    fun mesAnnonces(): Flow<List<Annonce>>
+
     @Insert
     suspend fun inserer(annonce: Annonce): Long
 
@@ -82,7 +87,7 @@ interface AnnonceDao {
 // DATABASE — point d'assemblage (singleton), identique au patron du cours
 // ----------------------------------------------------------------------------
 
-@Database(entities = [Annonce::class], version = 1, exportSchema = false)
+@Database(entities = [Annonce::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun annonceDao(): AnnonceDao
